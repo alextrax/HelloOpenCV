@@ -46,7 +46,7 @@
 - (IBAction)onCameraClicked:(id)sender
 {
     UIImagePickerController *picker = [[UIImagePickerController alloc] init];
-    picker.sourceType =  UIImagePickerControllerSourceTypeCamera;
+    picker.sourceType = UIImagePickerControllerSourceTypeCamera;
     picker.delegate = self;
     [self presentViewController:picker animated:YES completion:nil];
 }
