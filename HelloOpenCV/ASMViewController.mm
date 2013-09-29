@@ -8,6 +8,7 @@
 
 #import "ASMViewController.h"
 #import "asmmodel.h"
+#import "eye.h"
 
 @interface ASMViewController ()
 
@@ -233,7 +234,12 @@
     for (uint i = 0; i < fitResult.size(); i++){
         vector< Point_<int> > V;
         fitResult[i].toPointList(V);
-        asmModel.getShapeInfo().drawMarkPointsOnImg(mb, V, true);
+        eye eyeTest(mb, V);
+        mb = eyeTest.changeEyeColor(mb, 0, 0);
+        //mb = eyeTest.getMB();
+        //asmModel.getShapeInfo().drawMarkPointsOnImg(eyeTest.getMB(), V, true);
+        
+        //asmModel.getShapeInfo().drawMarkPointsOnImg(mb, V, true);
     }
     
     return [self UIImageFromCVMat:mb];

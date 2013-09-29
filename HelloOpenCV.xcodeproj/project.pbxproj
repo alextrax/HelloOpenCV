@@ -30,6 +30,7 @@
 		345567CB17E0D93100D286B1 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 345567CA17E0D93100D286B1 /* opencv2.framework */; };
 		34C7932717E3911600117DDA /* haarcascade_frontalface_alt.xml in Resources */ = {isa = PBXBuildFile; fileRef = 34C7932617E3911600117DDA /* haarcascade_frontalface_alt.xml */; };
 		34C7934817E472CC00117DDA /* ASMViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 34C7934717E472CC00117DDA /* ASMViewController.mm */; };
+		51BE45D517F84C4A0092BE2E /* eye.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 51BE45D317F84C4A0092BE2E /* eye.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,8 @@
 		34C7932617E3911600117DDA /* haarcascade_frontalface_alt.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = haarcascade_frontalface_alt.xml; sourceTree = "<group>"; };
 		34C7934617E472CC00117DDA /* ASMViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASMViewController.h; sourceTree = "<group>"; };
 		34C7934717E472CC00117DDA /* ASMViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ASMViewController.mm; sourceTree = "<group>"; };
+		51BE45D317F84C4A0092BE2E /* eye.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = eye.cpp; path = HelloOpenCV/eye.cpp; sourceTree = "<group>"; };
+		51BE45D417F84C4A0092BE2E /* eye.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = eye.h; path = HelloOpenCV/eye.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +116,7 @@
 		3455679B17E0D88300D286B1 = {
 			isa = PBXGroup;
 			children = (
+				51BE45D217F84BF50092BE2E /* faceMod */,
 				342B318117E246C600D9A787 /* asmlib */,
 				345567AD17E0D88300D286B1 /* HelloOpenCV */,
 				345567A617E0D88300D286B1 /* Frameworks */,
@@ -168,6 +172,15 @@
 				345567BD17E0D88300D286B1 /* Default-568h@2x.png */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		51BE45D217F84BF50092BE2E /* faceMod */ = {
+			isa = PBXGroup;
+			children = (
+				51BE45D317F84C4A0092BE2E /* eye.cpp */,
+				51BE45D417F84C4A0092BE2E /* eye.h */,
+			);
+			name = faceMod;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -251,6 +264,7 @@
 				3451B8CA17F206B700AA257E /* shapemodel.cpp in Sources */,
 				3451B8CB17F206B700AA257E /* shapevec.cpp in Sources */,
 				3451B8CC17F206B700AA257E /* similaritytrans.cpp in Sources */,
+				51BE45D517F84C4A0092BE2E /* eye.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
