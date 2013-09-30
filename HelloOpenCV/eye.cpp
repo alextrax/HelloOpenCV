@@ -21,24 +21,17 @@ cv::Mat eye::getMB(){
 
 }
 cv::Mat eye::changeEyeColor(cv::Mat& img, int hueThreshold, int targetHue){
-    cv::Mat hsvImage = img.clone();
+    cv::Mat hsvImage;
     cv::cvtColor(img, hsvImage, CV_BGR2HSV);
-    
-    std::vector<cv::Mat> channels;
-    
-    cv::split(hsvImage, channels);
-    cv::Mat hue = channels[0];
-    cv::Mat dest;
-    cv::Mat temp = img.clone();
-    
+
+    cv::Mat mask;
     //select change zone
-    cv::inRange(hsvImage, cv::Scalar(0, 0, 0), cv::Scalar(200, 200, 200), dest);
-    
-    cv::merge(channels, temp);
-    temp.setTo(cv::Scalar(60,255,255),dest);
-    cv::split(temp, channels);
-    cv::merge(channels, dest);
-    cv::cvtColor(dest, img, CV_HSV2BGR);
-    return img;
-    
+    cv::inRange(hsvImage, cv::Scalar(0, 0, 0), cv::Scalar(200, 200, 200), mask);
+
+    hsvImage.setTo(cv::Scalar(60,255,255),mask);
+
+    cv::Mat result;
+    cv::cvtColor(hsvImage, result, CV_HSV2BGR);
+
+    return result;
 }
