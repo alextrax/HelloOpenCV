@@ -17,6 +17,20 @@
 @implementation ASMViewController
 @synthesize image = _image;
 
+Mat showNumberOnImg(Mat& img, const vector< cv::Point >& vP)
+{
+    Mat mb = img;
+    
+    for (uint i=0;i<vP.size();i++){
+        //27~31(outter), 68~71(inner): right eye
+        //32~36(outter), 72~75(inner): left eye
+        char text[8];
+        sprintf(text, "%d", i);
+        putText(mb, text, vP[i], CV_FONT_HERSHEY_SIMPLEX, 0.25, cv::Scalar(25, 50, 255), 1, CV_AA);
+    }
+    return mb;
+}
+
 + (UIImage *)rotateImage:(UIImage *)image
 {
     CGImageRef imgRef = image.CGImage;
@@ -239,8 +253,8 @@
         mb = eyeTest.changeEyeColor(mb, 0, 0);
         //mb = eyeTest.getMB();
         //asmModel.getShapeInfo().drawMarkPointsOnImg(eyeTest.getMB(), V, true);
-        
         //asmModel.getShapeInfo().drawMarkPointsOnImg(mb, V, true);
+        mb = showNumberOnImg(mb, V);
     }
     
     return [self UIImageFromCVMat:mb];
