@@ -44,16 +44,7 @@ Mat ShapeInfo::drawMarkPointsOnImg(
         mb = img.clone();
 
     for (uint i=0;i<vP.size();i++){
-        //27~31(outter), 68~71(inner): right eye
-        //32~36(outter), 72~75(inner): left eye
-        if(i > 26 && i <= 36)
-        {
-            cv::circle(mb, vP[i], 3, cv::Scalar(25, 50, 255), 1, CV_AA);
-        }
-        if(i > 67 && i <= 75)
-        {
-            cv::circle(mb, vP[i], 3, cv::Scalar(25, 50, 255), 1, CV_AA);
-        }
+        cv::circle(mb, vP[i], 3, cv::Scalar(25, 50, 255), 1, CV_AA);
     }
     for (int i=0;i<nContours;i++){
         for (int j=contourStartInd[i]; j<contourStartInd[i+1]; j++){

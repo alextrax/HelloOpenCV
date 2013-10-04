@@ -17,18 +17,217 @@
 @implementation ASMViewController
 @synthesize image = _image;
 
-Mat showNumberOnImg(Mat& img, const vector< cv::Point >& vP)
+void showNumberOnImg(Mat& src, Mat& dst, const vector< cv::Point >& vP)
 {
-    Mat mb = img;
-    
+    if (&src != &dst)
+    {
+        dst = src.clone();
+    }
+
     for (uint i=0;i<vP.size();i++){
         //27~31(outter), 68~71(inner): right eye
         //32~36(outter), 72~75(inner): left eye
+        //48~66: mouth
         char text[8];
         sprintf(text, "%d", i);
-        putText(mb, text, vP[i], CV_FONT_HERSHEY_SIMPLEX, 0.25, cv::Scalar(25, 50, 255), 1, CV_AA);
+        putText(dst, text, vP[i], CV_FONT_HERSHEY_SIMPLEX, 0.25, cv::Scalar(25, 50, 255), 1, CV_AA);
     }
-    return mb;
+}
+
+void showHueHistogram(Mat& img)
+{
+    Mat hsvImg;
+    cv::cvtColor(img, hsvImg, CV_BGR2HSV);
+
+    // Quantize the hue to 180 levels
+    int hbins = 180;
+    int histSize[] = {hbins};
+    // hue varies from 0 to 179
+    float hranges[] = { 0, 180 };
+    const float* ranges[] = {hranges};
+    cv::MatND hist;
+    int channels[] = {0};
+
+    calcHist(&hsvImg,
+             1,
+             channels,
+             Mat(), // do not use mask
+             hist,
+             1,
+             histSize,
+             ranges,
+             true, // the histogram is uniform
+             false);
+
+    for (int i = 0; i < 180; i++)
+    {
+        float val = hist.at<float>(i);
+        NSLog(@"%d: %f", i, val);
+    }
+}
+
+void mixChannel(Mat& src, Mat& dst, float r, float g, float b)
+{
+    Mat mix;
+    mix = src.clone();
+    
+    for (int i = 0; i < src.rows; i++)
+    {
+        for (int j = 0; j < src.cols; j++)
+        {
+            int value = b*src.at<cv::Vec3b>(i,j)[0] + g*src.at<cv::Vec3b>(i,j)[1] + r*src.at<cv::Vec3b>(i,j)[2];
+            if(value > 255)
+            {
+                value = 255;
+            }
+            else if(value < 0)
+            {
+                value = 0;
+            }
+            
+            mix.at<cv::Vec3b>(i,j)[0] = value;
+            mix.at<cv::Vec3b>(i,j)[1] = value;
+            mix.at<cv::Vec3b>(i,j)[2] = value;
+        }
+    }
+
+    cv::cvtColor(mix, dst, CV_BGR2GRAY);
+}
+
+void maskByContour(Mat& dst, cv::Rect& roiRect, vector<cv::Point> contour)
+{
+    vector<cv::Point> contourRelative = contour;
+    for (int i = 0; i < contourRelative.size(); i++)
+    {
+        contourRelative[i].x = contourRelative[i].x - roiRect.x;
+        contourRelative[i].y = contourRelative[i].y - roiRect.y;
+    }
+
+    vector< vector<cv::Point> > contours;
+    contours.push_back(contourRelative);
+
+    dst = Mat::zeros(roiRect.height, roiRect.width, CV_8UC1);
+    cv::drawContours(dst, contours, -1, cv::Scalar(255), CV_FILLED);
+}
+
+void maskByBackgroundHue(Mat& src, Mat& dst)
+{
+    Mat hsvImg;
+    cv::cvtColor(src, hsvImg, CV_BGR2HSV);
+    
+    //NSLog(@"%d", hsvImg.at<cv::Vec3b>(0,0)[0]);
+    int skinHue = hsvImg.at<cv::Vec3b>(0,0)[0];
+
+    cv::inRange(hsvImg, cv::Scalar(skinHue - 5, 0, 0), cv::Scalar(skinHue + 5, 255, 255), dst);
+    dst = Mat::ones(dst.size(), dst.type()) * 255 - dst; //invert
+}
+
+void maskByBinaryImage(Mat& src, Mat& dst)
+{
+    if (&src != &dst)
+    {
+        dst = src.clone();
+    }
+    
+    mixChannel(dst, dst, -0.7, 2.0, -0.3);
+    cv::threshold(dst, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+    dst = Mat::ones(dst.size(), dst.type()) * 255 - dst; //invert
+}
+
+void applyCannyFilter(Mat& src, Mat& dst)
+{
+    Mat temp;
+    double threshold;
+    
+    cv::cvtColor(src, dst, CV_BGR2GRAY);
+    threshold = cv::threshold(dst, temp, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+    cv::Canny(dst, dst, threshold*0.5, threshold);
+}
+
+void changeEyeColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
+{
+    if (&src != &dst)
+    {
+        dst = src.clone();
+    }
+
+    vector< cv::Point > eyeContour;
+    
+    for (int i = 27; i <= 31; i++)
+    {
+        eyeContour.push_back(vP[i]);
+    }
+    
+    cv::Rect mouthRect = boundingRect(eyeContour);
+    
+    //mouthRect.x = mouthRect.x - mouthRect.width*0.1;
+    //mouthRect.width = mouthRect.width*1.2;
+    //mouthRect.y = mouthRect.y - mouthRect.height*0.25;
+    //mouthRect.height = mouthRect.height*1.5;
+    Mat roi = Mat(dst, mouthRect); //Region of intrest
+
+    Mat mask;
+    //maskByBackgroundHue(roi, mask);
+    //maskByContour(mask, mouthRect, mouthContour);
+    maskByBinaryImage(roi, mask);
+
+    
+    //Use the following two lines to show mask
+    //cv::cvtColor(mask, roi, CV_GRAY2BGR);
+    //return;
+
+    cv::Mat hsvImg;
+    cv::cvtColor(roi, hsvImg, CV_BGR2HSV);
+    
+    vector<cv::Mat> matsForEachChannel;
+    cv::split(hsvImg, matsForEachChannel);
+    matsForEachChannel[0].setTo(cv::Scalar(30), mask);
+    cv::merge(matsForEachChannel, hsvImg);
+    
+    cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
+}
+
+void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
+{
+    if (&src != &dst)
+    {
+        dst = src.clone();
+    }
+
+    vector< cv::Point > mouthContour;
+
+    for (int i = 48; i <= 59; i++)
+    {
+        mouthContour.push_back(vP[i]);
+    }
+
+    cv::Rect mouthRect = boundingRect(mouthContour);
+    
+    //mouthRect.x = mouthRect.x - mouthRect.width*0.1;
+    //mouthRect.width = mouthRect.width*1.2;
+    //mouthRect.y = mouthRect.y - mouthRect.height*0.25;
+    //mouthRect.height = mouthRect.height*1.5;
+    Mat roi = Mat(dst, mouthRect); //Region of intrest
+
+    Mat mask;
+    //maskByBackgroundHue(roi, mask);
+    //maskByContour(mask, mouthRect, mouthContour);
+    maskByBinaryImage(roi, mask);
+
+
+    //Use the following two lines to show mask
+    //cv::cvtColor(mask, roi, CV_GRAY2BGR);
+    //return;
+    
+    cv::Mat hsvImg;
+    cv::cvtColor(roi, hsvImg, CV_BGR2HSV);
+
+    vector<cv::Mat> matsForEachChannel;
+    cv::split(hsvImg, matsForEachChannel);
+    matsForEachChannel[0].setTo(cv::Scalar(30), mask);
+    cv::merge(matsForEachChannel, hsvImg);
+
+    cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
 }
 
 + (UIImage *)rotateImage:(UIImage *)image
@@ -158,7 +357,12 @@ Mat showNumberOnImg(Mat& img, const vector< cv::Point >& vP)
 -(UIImage *)UIImageFromCVMat:(cv::Mat)cvMat
 {
     cv::Mat m;
-    cv::cvtColor(cvMat, m, CV_BGR2RGB);
+
+    if (cvMat.channels()==1)
+        cv::cvtColor(cvMat, m, CV_GRAY2RGB);
+    else
+        cv::cvtColor(cvMat, m, CV_BGR2RGB);
+
     NSData *data = [NSData dataWithBytes:m.data length:m.elemSize()*m.total()];
     CGColorSpaceRef colorSpace;
     
@@ -249,14 +453,16 @@ Mat showNumberOnImg(Mat& img, const vector< cv::Point >& vP)
     for (uint i = 0; i < fitResult.size(); i++){
         vector< Point_<int> > V;
         fitResult[i].toPointList(V);
-        eye eyeTest(mb, V);
-        mb = eyeTest.changeEyeColor(mb, 0, 0);
+        //eye eyeTest(mb, V);
+        //mb = eyeTest.changeEyeColor(mb, 0, 0);
         //mb = eyeTest.getMB();
-        //asmModel.getShapeInfo().drawMarkPointsOnImg(eyeTest.getMB(), V, true);
-        //asmModel.getShapeInfo().drawMarkPointsOnImg(mb, V, true);
-        mb = showNumberOnImg(mb, V);
+
+        changeLipsColor(mb, mb, V);
+        //changeEyeColor(mb, mb, V);
+        mb = asmModel.getShapeInfo().drawMarkPointsOnImg(mb, V, true);
+        showNumberOnImg(mb, mb, V);
     }
-    
+
     return [self UIImageFromCVMat:mb];
 }
 
