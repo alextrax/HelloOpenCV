@@ -230,101 +230,79 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
     cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
 }
 
-+ (UIImage *)rotateImage:(UIImage *)image
++ (UIImage *)rotateImage:(UIImage *)image toSize:(CGSize)targetSize
 {
-    CGImageRef imgRef = image.CGImage;
-    
-    CGFloat width = CGImageGetWidth(imgRef);
-    CGFloat height = CGImageGetHeight(imgRef);
-    
-    //NSLog(@"width = %f, height = %f", width, height);
-    
-    CGAffineTransform transform = CGAffineTransformIdentity;
-    CGRect bounds = CGRectMake(0, 0, width, height);
-    
-    CGFloat scaleRatio = bounds.size.width / width;
-    CGSize imageSize = CGSizeMake(CGImageGetWidth(imgRef), CGImageGetHeight(imgRef));
-    CGFloat boundHeight;
-    UIImageOrientation orient = image.imageOrientation;
-    switch(orient) {
-        case UIImageOrientationUp: //EXIF = 1
-            transform = CGAffineTransformIdentity;
-            break;
-            
-        case UIImageOrientationUpMirrored: //EXIF = 2
-            transform = CGAffineTransformMakeTranslation(imageSize.width, 0.0);
-            transform = CGAffineTransformScale(transform, -1.0, 1.0);
-            break;
-            
-        case UIImageOrientationDown: //EXIF = 3
-            transform = CGAffineTransformMakeTranslation(imageSize.width, imageSize.height);
-            transform = CGAffineTransformRotate(transform, M_PI);
-            break;
-            
-        case UIImageOrientationDownMirrored: //EXIF = 4
-            transform = CGAffineTransformMakeTranslation(0.0, imageSize.height);
-            transform = CGAffineTransformScale(transform, 1.0, -1.0);
-            break;
-            
-        case UIImageOrientationLeftMirrored: //EXIF = 5
-            boundHeight = bounds.size.height;
-            bounds.size.height = bounds.size.width;
-            bounds.size.width = boundHeight;
-            transform = CGAffineTransformMakeTranslation(imageSize.height, imageSize.width);
-            transform = CGAffineTransformScale(transform, -1.0, 1.0);
-            transform = CGAffineTransformRotate(transform, 3.0 * M_PI_2);
-            break;
-            
-        case UIImageOrientationLeft: //EXIF = 6
-            boundHeight = bounds.size.height;
-            bounds.size.height = bounds.size.width;
-            bounds.size.width = boundHeight;
-            transform = CGAffineTransformMakeTranslation(0.0, imageSize.width);
-            transform = CGAffineTransformRotate(transform, 3.0 * M_PI_2);
-            break;
-            
-        case UIImageOrientationRightMirrored: //EXIF = 7
-            boundHeight = bounds.size.height;
-            bounds.size.height = bounds.size.width;
-            bounds.size.width = boundHeight;
-            transform = CGAffineTransformMakeScale(-1.0, 1.0);
-            transform = CGAffineTransformRotate(transform, M_PI_2);
-            break;
-            
-        case UIImageOrientationRight: //EXIF = 8
-            boundHeight = bounds.size.height;
-            bounds.size.height = bounds.size.width;
-            bounds.size.width = boundHeight;
-            transform = CGAffineTransformMakeTranslation(imageSize.height, 0.0);
-            transform = CGAffineTransformRotate(transform, M_PI_2);
-            break;
-            
-        default:
-            transform = CGAffineTransformIdentity;
-            break;
-            
+    UIImage *sourceImage = image;
+    CGFloat width, height, targetWidth, targetHeight;
+
+    CGImageRef imageRef = [sourceImage CGImage];
+
+    if (sourceImage.imageOrientation == UIImageOrientationUp || sourceImage.imageOrientation == UIImageOrientationDown) {
+        width = CGImageGetWidth(imageRef);
+        height = CGImageGetHeight(imageRef);
+    }
+    else
+    {
+        width = CGImageGetHeight(imageRef);
+        height = CGImageGetWidth(imageRef);
+    }
+
+    CGFloat ratio = width/height;
+    if (width > height)
+    {
+        targetWidth = MAX(targetSize.width, targetSize.height);
+        targetHeight = targetWidth/ratio;
+    }
+    else
+    {
+        targetHeight = MAX(targetSize.width, targetSize.height);
+        targetWidth = targetHeight*ratio;
     }
     
-    UIGraphicsBeginImageContext(bounds.size);
-    
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    
-    if (orient == UIImageOrientationRight || orient == UIImageOrientationLeft) {
-        CGContextScaleCTM(context, -scaleRatio, scaleRatio);
-        CGContextTranslateCTM(context, -height, 0);
+    CGBitmapInfo bitmapInfo = CGImageGetBitmapInfo(imageRef);
+    CGColorSpaceRef colorSpaceInfo = CGImageGetColorSpace(imageRef);
+
+    if (bitmapInfo == kCGImageAlphaNone)
+    {
+        bitmapInfo = kCGImageAlphaNoneSkipLast;
     }
-    else {
-        CGContextScaleCTM(context, scaleRatio, -scaleRatio);
-        CGContextTranslateCTM(context, 0, -height);
+
+    CGContextRef bitmap;
+
+    bitmap = CGBitmapContextCreate(NULL, targetWidth, targetHeight, CGImageGetBitsPerComponent(imageRef), CGImageGetBitsPerComponent(imageRef)*targetWidth, colorSpaceInfo, bitmapInfo);
+
+    if (sourceImage.imageOrientation == UIImageOrientationLeft)
+    {
+        CGContextRotateCTM (bitmap, M_PI_2);
+        CGContextTranslateCTM (bitmap, 0, -targetWidth);
+    } else if (sourceImage.imageOrientation == UIImageOrientationRight)
+    {
+        CGContextRotateCTM (bitmap, -M_PI_2);
+        CGContextTranslateCTM (bitmap, -targetHeight, 0);
+    } else if (sourceImage.imageOrientation == UIImageOrientationUp)
+    {
+        // NOTHING
+    } else if (sourceImage.imageOrientation == UIImageOrientationDown)
+    {
+        CGContextTranslateCTM (bitmap, targetWidth, targetHeight);
+        CGContextRotateCTM (bitmap, -M_PI);
     }
-    
-    CGContextConcatCTM(context, transform);
-    
-    CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, width, height), imgRef);
-    UIImage *imageCopy = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    
-    return imageCopy;
+
+    if (sourceImage.imageOrientation == UIImageOrientationUp || sourceImage.imageOrientation == UIImageOrientationDown)
+    {
+        CGContextDrawImage(bitmap, CGRectMake(0, 0, targetWidth, targetHeight), imageRef);
+    }
+    else
+    {
+        CGContextDrawImage(bitmap, CGRectMake(0, 0, targetHeight, targetWidth), imageRef);
+    }
+    CGImageRef ref = CGBitmapContextCreateImage(bitmap);
+    UIImage* newImage = [UIImage imageWithCGImage:ref];
+
+    CGContextRelease(bitmap);
+    CGImageRelease(ref);
+
+    return newImage;
 }
 
 - (cv::Mat)cvMatFromUIImage:(UIImage *)image
@@ -416,7 +394,7 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
 - (UIImage*)processImage:(UIImage*)image
 {
     // Load image.
-    Mat img = [self cvMatFromUIImage:[[self class] rotateImage:image]];
+    Mat img = [self cvMatFromUIImage:[[self class] rotateImage:image toSize:CGSizeMake(480, 640)]];
     if (img.empty())
     {
         NSLog(@"load image fail");
@@ -485,7 +463,7 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
 
 - (UIView*)viewForZoomingInScrollView:(UIScrollView *)scrollView
 {
-    return self.imageView;
+    return self.contentView;
 }
 
 @end

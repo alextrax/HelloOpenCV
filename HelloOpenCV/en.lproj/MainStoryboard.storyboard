@@ -59,10 +59,17 @@
                                 <rect key="frame" x="0.0" y="64" width="320" height="416"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <subviews>
-                                    <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" id="1VE-c8-Qyz">
+                                    <view contentMode="scaleToFill" id="mZN-bO-MWf">
                                         <rect key="frame" x="0.0" y="0.0" width="320" height="416"/>
-                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                    </imageView>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <subviews>
+                                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" id="1VE-c8-Qyz">
+                                                <rect key="frame" x="0.0" y="0.0" width="320" height="416"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            </imageView>
+                                        </subviews>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                    </view>
                                 </subviews>
                             </scrollView>
                         </subviews>
@@ -71,6 +78,7 @@
                     <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
                     <simulatedScreenMetrics key="simulatedDestinationMetrics"/>
                     <connections>
+                        <outlet property="contentView" destination="mZN-bO-MWf" id="pBx-3j-nlJ"/>
                         <outlet property="imageView" destination="1VE-c8-Qyz" id="UK7-d3-cs7"/>
                         <outlet property="scrollView" destination="08T-th-b78" id="nEf-kZ-sgp"/>
                     </connections>

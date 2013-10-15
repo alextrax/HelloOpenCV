@@ -212,6 +212,11 @@
 				CLASSPREFIX = HelloOpenCV;
 				LastUpgradeCheck = 0460;
 				ORGANIZATIONNAME = huangtw;
+				TargetAttributes = {
+					345567A317E0D88300D286B1 = {
+						DevelopmentTeam = 69TECS3NLN;
+					};
+				};
 			};
 			buildConfigurationList = 3455679F17E0D88300D286B1 /* Build configuration list for PBXProject "HelloOpenCV" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -351,8 +356,8 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_IDENTITY = "iPhone Developer: TZU WEI HUANG (8WD3W5D9MJ)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: TZU WEI HUANG (8WD3W5D9MJ)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/HelloOpenCV\"",
@@ -374,8 +379,8 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_IDENTITY = "iPhone Developer: TZU WEI HUANG (8WD3W5D9MJ)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer: TZU WEI HUANG (8WD3W5D9MJ)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/HelloOpenCV\"",
