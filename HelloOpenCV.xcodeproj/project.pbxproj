@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		342B318F17E363E400D9A787 /* muct76.model in Resources */ = {isa = PBXBuildFile; fileRef = 342B318E17E363E400D9A787 /* muct76.model */; };
+		3439542E180F3E06007770AD /* red_circle.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439542D180F3E06007770AD /* red_circle.png */; };
 		3451B8C517F206B700AA257E /* afreader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3451B8B517F206B700AA257E /* afreader.cpp */; };
 		3451B8C617F206B700AA257E /* asmmodel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3451B8B717F206B700AA257E /* asmmodel.cpp */; };
 		3451B8C717F206B700AA257E /* modelfile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3451B8B917F206B700AA257E /* modelfile.cpp */; };
@@ -30,11 +31,13 @@
 		345567CB17E0D93100D286B1 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 345567CA17E0D93100D286B1 /* opencv2.framework */; };
 		34C7932717E3911600117DDA /* haarcascade_frontalface_alt.xml in Resources */ = {isa = PBXBuildFile; fileRef = 34C7932617E3911600117DDA /* haarcascade_frontalface_alt.xml */; };
 		34C7934817E472CC00117DDA /* ASMViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 34C7934717E472CC00117DDA /* ASMViewController.mm */; };
+		34E3C33F18105236005BEA9E /* red_circle@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 34E3C33E18105236005BEA9E /* red_circle@2x.png */; };
 		51BE45D517F84C4A0092BE2E /* eye.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 51BE45D317F84C4A0092BE2E /* eye.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		342B318E17E363E400D9A787 /* muct76.model */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = muct76.model; sourceTree = "<group>"; };
+		3439542D180F3E06007770AD /* red_circle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = red_circle.png; sourceTree = "<group>"; };
 		3451B8B517F206B700AA257E /* afreader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = afreader.cpp; path = HelloOpenCV/asmlib/afreader.cpp; sourceTree = "<group>"; };
 		3451B8B617F206B700AA257E /* afreader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = afreader.h; path = HelloOpenCV/asmlib/afreader.h; sourceTree = "<group>"; };
 		3451B8B717F206B700AA257E /* asmmodel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = asmmodel.cpp; path = HelloOpenCV/asmlib/asmmodel.cpp; sourceTree = "<group>"; };
@@ -71,6 +74,7 @@
 		34C7932617E3911600117DDA /* haarcascade_frontalface_alt.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = haarcascade_frontalface_alt.xml; sourceTree = "<group>"; };
 		34C7934617E472CC00117DDA /* ASMViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASMViewController.h; sourceTree = "<group>"; };
 		34C7934717E472CC00117DDA /* ASMViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ASMViewController.mm; sourceTree = "<group>"; };
+		34E3C33E18105236005BEA9E /* red_circle@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "red_circle@2x.png"; sourceTree = "<group>"; };
 		51BE45D317F84C4A0092BE2E /* eye.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = eye.cpp; path = HelloOpenCV/eye.cpp; sourceTree = "<group>"; };
 		51BE45D417F84C4A0092BE2E /* eye.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = eye.h; path = HelloOpenCV/eye.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -146,6 +150,8 @@
 		345567AD17E0D88300D286B1 /* HelloOpenCV */ = {
 			isa = PBXGroup;
 			children = (
+				34E3C33E18105236005BEA9E /* red_circle@2x.png */,
+				3439542D180F3E06007770AD /* red_circle.png */,
 				34C7932617E3911600117DDA /* haarcascade_frontalface_alt.xml */,
 				342B318E17E363E400D9A787 /* muct76.model */,
 				345567B617E0D88300D286B1 /* HelloOpenCVAppDelegate.h */,
@@ -245,6 +251,8 @@
 				345567BC17E0D88300D286B1 /* Default@2x.png in Resources */,
 				345567BE17E0D88300D286B1 /* Default-568h@2x.png in Resources */,
 				345567C117E0D88300D286B1 /* MainStoryboard.storyboard in Resources */,
+				34E3C33F18105236005BEA9E /* red_circle@2x.png in Resources */,
+				3439542E180F3E06007770AD /* red_circle.png in Resources */,
 				342B318F17E363E400D9A787 /* muct76.model in Resources */,
 				34C7932717E3911600117DDA /* haarcascade_frontalface_alt.xml in Resources */,
 			);

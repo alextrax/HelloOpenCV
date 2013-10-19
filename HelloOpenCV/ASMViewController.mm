@@ -11,11 +11,21 @@
 #import "eye.h"
 
 @interface ASMViewController ()
-
+{
+    vector< Point_<int> > rightEyePoints;
+    vector< Point_<int> > leftEyePoints;
+    vector< Point_<int> > lipPoints;
+}
+@property (nonatomic, strong) NSMutableArray *rightEyePointButtons;
+@property (nonatomic, strong) NSMutableArray *leftEyePointButtons;
+@property (nonatomic, strong) NSMutableArray *lipPointButtons;
 @end
 
 @implementation ASMViewController
 @synthesize image = _image;
+@synthesize rightEyePointButtons = _rightEyePointButtons;
+@synthesize leftEyePointButtons = _leftEyePointButtons;
+@synthesize lipPointButtons = _lipPointButtons;
 
 void showNumberOnImg(Mat& src, Mat& dst, const vector< cv::Point >& vP)
 {
@@ -187,18 +197,11 @@ void changeEyeColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
     cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
 }
 
-void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
+void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour)
 {
     if (&src != &dst)
     {
         dst = src.clone();
-    }
-
-    vector< cv::Point > mouthContour;
-
-    for (int i = 48; i <= 59; i++)
-    {
-        mouthContour.push_back(vP[i]);
     }
 
     cv::Rect mouthRect = boundingRect(mouthContour);
@@ -230,7 +233,7 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
     cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
 }
 
-+ (UIImage *)rotateImage:(UIImage *)image toSize:(CGSize)targetSize
+- (UIImage *)rotateImage:(UIImage *)image toSize:(CGSize)targetSize
 {
     UIImage *sourceImage = image;
     CGFloat width, height, targetWidth, targetHeight;
@@ -247,15 +250,26 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
         height = CGImageGetWidth(imageRef);
     }
 
-    CGFloat ratio = width/height;
     if (width > height)
     {
         targetWidth = MAX(targetSize.width, targetSize.height);
+        targetHeight = MIN(targetSize.width, targetSize.height);
+    }
+    else
+    {
+        targetWidth = MIN(targetSize.width, targetSize.height);
+        targetHeight = MAX(targetSize.width, targetSize.height);
+    }
+
+    CGFloat ratio = width/height;
+    CGFloat targetRatio = targetWidth/targetHeight;
+
+    if (ratio > targetRatio)
+    {
         targetHeight = targetWidth/ratio;
     }
     else
     {
-        targetHeight = MAX(targetSize.width, targetSize.height);
         targetWidth = targetHeight*ratio;
     }
     
@@ -389,12 +403,13 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
     [super viewDidLoad];
 
     self.scrollView.delegate = self;
+    self.image = [self rotateImage:self.image toSize:CGSizeMake(480, 640)];
 }
 
 - (UIImage*)processImage:(UIImage*)image
 {
     // Load image.
-    Mat img = [self cvMatFromUIImage:[[self class] rotateImage:image toSize:CGSizeMake(480, 640)]];
+    Mat img = [self cvMatFromUIImage:self.image];
     if (img.empty())
     {
         NSLog(@"load image fail");
@@ -444,13 +459,160 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
     return [self UIImageFromCVMat:mb];
 }
 
+- (void)fitASM
+{
+    // Load image.
+    Mat img = [self cvMatFromUIImage:self.image];
+    if (img.empty())
+    {
+        NSLog(@"load image fail");
+        return;
+    }
+    
+    //Load ASM Model
+    StatModel::ASMModel asmModel;
+    std::string asmModelPath = [[[NSBundle mainBundle] pathForResource:@"muct76" ofType:@"model"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
+    asmModel.loadFromFile(asmModelPath);
+    
+    //Load face model
+    cv::CascadeClassifier faceCascade;
+    std::string faceCascadePath = [[[NSBundle mainBundle] pathForResource:@"haarcascade_frontalface_alt" ofType:@"xml"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
+    if (!faceCascade.load(faceCascadePath))
+    {
+        NSLog(@"faceCascade load fail");
+        return;
+    }
+    
+    // Face detection.
+    vector<cv::Rect> faces;
+    faceCascade.detectMultiScale(img, faces, 1.2, 2, CV_HAAR_SCALE_IMAGE, cv::Size(60, 60));
+    
+    // Fit to ASM!
+    vector<StatModel::ASMFitResult> fitResult = asmModel.fitAll(img, faces, 0);
+    
+    for (uint i = 0; i < fitResult.size(); i++){
+        vector< Point_<int> > V;
+        fitResult[i].toPointList(V);
+        
+        for(uint j = 0; j < V.size(); j++)
+        {
+            if (j >= 48 && j <= 59)
+            {
+                lipPoints.push_back(V[j]);
+            }
+
+            if (j >= 27 && j <= 31)
+            {
+                rightEyePoints.push_back(V[j]);
+            }
+
+            if (j >= 32 && j <= 36)
+            {
+                leftEyePoints.push_back(V[j]);
+            }
+        }
+    }
+}
+
+- (void)changeLipsColor
+{
+    dispatch_queue_t queue = dispatch_queue_create("processing image", NULL);
+    dispatch_async(queue, ^{
+
+        Mat img = [self cvMatFromUIImage:self.image];
+
+        Mat mb;
+        if (img.channels()==1)
+            cv::cvtColor(img, mb, CV_GRAY2RGB);
+        else
+            mb = img;
+
+        changeLipsColor(img, img, lipPoints);
+
+        UIImage *newImage = [self UIImageFromCVMat:mb];
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.imageView.image = newImage;
+        });
+    });
+}
+
+- (CGRect)frameForImage:(UIImage*)image inImageViewAspectFit:(UIImageView*)imageView
+{
+    float imageRatio = image.size.width / image.size.height;
+    
+    float viewRatio = imageView.frame.size.width / imageView.frame.size.height;
+    
+    if(imageRatio < viewRatio)
+    {
+        float scale = imageView.frame.size.height / image.size.height;
+        
+        float width = scale * image.size.width;
+        
+        float topLeftX = (imageView.frame.size.width - width) * 0.5;
+        
+        return CGRectMake(topLeftX, 0, width, imageView.frame.size.height);
+    }
+    else
+    {
+        float scale = imageView.frame.size.width / image.size.width;
+        
+        float height = scale * image.size.height;
+        
+        float topLeftY = (imageView.frame.size.height - height) * 0.5;
+        
+        return CGRectMake(0, topLeftY, imageView.frame.size.width, height);
+    }
+}
+
+- (NSMutableArray*)createButtonsForPoints:(vector< Point_<int> >)points
+{
+    CGRect frameInImageView = [self frameForImage:self.image inImageViewAspectFit:self.imageView];
+    CGFloat scale = frameInImageView.size.width / self.image.size.width;
+    UIImage *buttonImage = [UIImage imageNamed:@"red_circle.png"];
+    
+    CGFloat width = 5;
+    CGFloat height = 5;
+    
+    NSMutableArray *buttons = [[NSMutableArray alloc] init];
+    for(uint i = 0; i < points.size(); i++)
+    {
+        CGFloat x = points[i].x * scale + frameInImageView.origin.x - width/2;
+        CGFloat y = points[i].y * scale + frameInImageView.origin.y - height/2;
+        
+        UIButton *pointButton = [[UIButton alloc] initWithFrame:CGRectMake(x, y, width, height)];
+        [pointButton setBackgroundImage:buttonImage forState:UIControlStateNormal];
+        [pointButton addTarget:self action:@selector(wasDragged:withEvent:) forControlEvents:UIControlEventTouchDragInside];
+        [pointButton addTarget:self action:@selector(wasTouchedUpInside:) forControlEvents:UIControlEventTouchUpInside];
+        
+        [buttons addObject:pointButton];
+    }
+
+    return buttons;
+}
+
 - (void)viewDidAppear:(BOOL)animated
 {
     dispatch_queue_t queue = dispatch_queue_create("processing image", NULL);
     dispatch_async(queue, ^{
-        UIImage *image = [self processImage:self.image];
+        //UIImage *image = [self processImage:self.image];
+        [self fitASM];
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.imageView.image = image;
+            self.imageView.image = self.image;
+            self.rightEyePointButtons = [self createButtonsForPoints:rightEyePoints];
+            for (UIButton *button in self.rightEyePointButtons) {
+                [self.contentView addSubview:button];
+            }
+
+            self.leftEyePointButtons = [self createButtonsForPoints:leftEyePoints];
+            for (UIButton *button in self.leftEyePointButtons) {
+                [self.contentView addSubview:button];
+            }
+
+            self.lipPointButtons = [self createButtonsForPoints:lipPoints];
+            for (UIButton *button in self.lipPointButtons) {
+                [self.contentView addSubview:button];
+            }
         });
     });
 }
@@ -459,6 +621,37 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
 {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+- (void)wasDragged:(UIButton *)button withEvent:(UIEvent *)event
+{
+	// get the touch
+	UITouch *touch = [[event touchesForView:button] anyObject];
+    
+	// get delta
+	CGPoint previousLocation = [touch previousLocationInView:button];
+	CGPoint location = [touch locationInView:button];
+	CGFloat delta_x = location.x - previousLocation.x;
+	CGFloat delta_y = location.y - previousLocation.y;
+    
+	// move button
+	button.center = CGPointMake(button.center.x + delta_x,
+                                button.center.y + delta_y);
+}
+
+- (void)wasTouchedUpInside:(UIButton *)button
+{
+    CGRect frameInImageView = [self frameForImage:self.image inImageViewAspectFit:self.imageView];
+    CGFloat scale = frameInImageView.size.width / self.image.size.width;
+
+    NSUInteger index = [self.lipPointButtons indexOfObject:button];
+    lipPoints[index].x = (button.center.x -frameInImageView.origin.x) / scale;
+    lipPoints[index].y = (button.center.y -frameInImageView.origin.y) / scale;
+}
+
+- (IBAction)onLipButtonClicked:(id)sender
+{
+    [self changeLipsColor];
 }
 
 - (UIView*)viewForZoomingInScrollView:(UIScrollView *)scrollView
