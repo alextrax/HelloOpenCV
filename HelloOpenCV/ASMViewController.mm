@@ -104,6 +104,60 @@ void mixChannel(Mat& src, Mat& dst, float r, float g, float b)
     cv::cvtColor(mix, dst, CV_BGR2GRAY);
 }
 
+void toRelativeHSVColor(Mat& src, Mat& dst, int h_offset, int s_offset, int v_offset, Mat& mask)
+{
+    //Mat mix;
+    //mix = src.clone();
+    float mid_x = src.cols/2;
+    float mid_y = src.rows/2;
+    
+    for (int y = 0; y < src.rows; y++)
+    {
+        for (int x = 0; x < src.cols; x++)
+        {
+            if(mask.at<uchar>(y,x)!= 255) continue;
+            
+            
+            
+            float dis_x = (mid_x - x);
+            float dis_y = (mid_y - y);
+            
+            if (dis_x < 0) dis_x = -dis_x;
+            if (dis_y < 0) dis_y = -dis_y;
+            
+            float rel_dis_x = (dis_x)/mid_x;
+            float rel_dis_y = (dis_y)/mid_y;
+            
+            int tmp_h_offset = h_offset;
+        
+        
+            if(rel_dis_x > rel_dis_y){ // use i as % index
+                    tmp_h_offset = h_offset * (1 - rel_dis_x);
+            }
+            else{ // use j as % index
+                    tmp_h_offset = h_offset * (1 - rel_dis_y);
+            }
+            
+            int tmp_h = src.at<cv::Vec3b>(y,x)[0]+tmp_h_offset;
+            if(tmp_h > 180) tmp_h -= 180;
+            else if(tmp_h < 0) tmp_h += 180;
+            dst.at<cv::Vec3b>(y,x)[0] = tmp_h;
+            
+            int tmp_s = src.at<cv::Vec3b>(y,x)[1]+s_offset;
+            if(tmp_s > 255) tmp_s = 255;
+            else if(tmp_s < 0) tmp_s = 0;
+            dst.at<cv::Vec3b>(y,x)[1] = tmp_s;
+            
+            
+            int tmp_v = src.at<cv::Vec3b>(y,x)[2]+v_offset;
+            if(tmp_v > 255) tmp_v = 255;
+            else if(tmp_v < 0) tmp_v = 0;
+            dst.at<cv::Vec3b>(y,x)[2] = tmp_v;
+        }
+    }
+    
+}
+
 void maskByContour(Mat& dst, cv::Rect& roiRect, vector<cv::Point> contour)
 {
     vector<cv::Point> contourRelative = contour;
@@ -197,6 +251,7 @@ void changeEyeColor(Mat& src, Mat& dst, const vector< cv::Point >& vP)
     cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
 }
 
+
 void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour)
 {
     if (&src != &dst)
@@ -214,8 +269,8 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
 
     Mat mask;
     //maskByBackgroundHue(roi, mask);
-    //maskByContour(mask, mouthRect, mouthContour);
-    maskByBinaryImage(roi, mask);
+    maskByContour(mask, mouthRect, mouthContour);
+    //maskByBinaryImage(roi, mask);
 
 
     //Use the following two lines to show mask
@@ -227,8 +282,16 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
 
     vector<cv::Mat> matsForEachChannel;
     cv::split(hsvImg, matsForEachChannel);
-    matsForEachChannel[0].setTo(cv::Scalar(30), mask);
-    cv::merge(matsForEachChannel, hsvImg);
+    //matsForEachChannel[0].setTo(cv::Scalar(30), mask);
+    
+    
+    int h_offset = 155 - hsvImg.at<cv::Vec3b>((hsvImg.rows)/4, (hsvImg.cols)/2)[0];
+    int s_offset = 210 - hsvImg.at<cv::Vec3b>((hsvImg.rows)/4, (hsvImg.cols)/2)[1];
+    
+    if(ABS(h_offset)> 70) h_offset = -(180-h_offset); // round up to avoid green color
+    toRelativeHSVColor(hsvImg, hsvImg, h_offset, 0, 0, mask);
+    
+    //cv::merge(matsForEachChannel, hsvImg);
 
     cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
 }
@@ -571,8 +634,8 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
     CGFloat scale = frameInImageView.size.width / self.image.size.width;
     UIImage *buttonImage = [UIImage imageNamed:@"red_circle.png"];
     
-    CGFloat width = 5;
-    CGFloat height = 5;
+    CGFloat width = 10;
+    CGFloat height = 10;
     
     NSMutableArray *buttons = [[NSMutableArray alloc] init];
     for(uint i = 0; i < points.size(); i++)
