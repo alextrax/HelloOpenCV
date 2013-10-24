@@ -661,17 +661,21 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
     CGFloat scale = frameInImageView.size.width / self.image.size.width;
     UIImage *buttonImage = [UIImage imageNamed:@"red_circle.png"];
     
-    CGFloat width = 10;
-    CGFloat height = 10;
+    CGFloat width = 5;
+    CGFloat height = 5;
     
     NSMutableArray *buttons = [[NSMutableArray alloc] init];
     for(uint i = 0; i < points.size(); i++)
     {
-        CGFloat x = points[i].x * scale + frameInImageView.origin.x - width/2;
-        CGFloat y = points[i].y * scale + frameInImageView.origin.y - height/2;
-        
-        UIButton *pointButton = [[UIButton alloc] initWithFrame:CGRectMake(x, y, width, height)];
-        [pointButton setBackgroundImage:buttonImage forState:UIControlStateNormal];
+        CGFloat x = points[i].x * scale + frameInImageView.origin.x;
+        CGFloat y = points[i].y * scale + frameInImageView.origin.y;
+
+        UIButton *pointButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        [pointButton setImage:buttonImage forState:UIControlStateNormal];
+        pointButton.frame = CGRectMake(0, 0, width*5, height*5);
+        pointButton.imageEdgeInsets = UIEdgeInsetsMake(height*2, width*2, height*2, width*2);
+        pointButton.center = CGPointMake(x, y);
+
         [pointButton addTarget:self action:@selector(wasDragged:withEvent:) forControlEvents:UIControlEventTouchDragInside];
         [pointButton addTarget:self action:@selector(wasTouchedUpInside:) forControlEvents:UIControlEventTouchUpInside];
         
