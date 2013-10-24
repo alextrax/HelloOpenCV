@@ -104,58 +104,73 @@ void mixChannel(Mat& src, Mat& dst, float r, float g, float b)
     cv::cvtColor(mix, dst, CV_BGR2GRAY);
 }
 
-void toRelativeHSVColor(Mat& src, Mat& dst, int h_offset, int s_offset, int v_offset, Mat& mask)
+void mixWithOpacityMask(Mat& src, Mat& dst, Mat& top, Mat& mask)
 {
-    //Mat mix;
-    //mix = src.clone();
-    float mid_x = src.cols/2;
-    float mid_y = src.rows/2;
-    
     for (int y = 0; y < src.rows; y++)
     {
         for (int x = 0; x < src.cols; x++)
         {
-            if(mask.at<uchar>(y,x)!= 255) continue;
-            
-            
-            
-            float dis_x = (mid_x - x);
-            float dis_y = (mid_y - y);
-            
-            if (dis_x < 0) dis_x = -dis_x;
-            if (dis_y < 0) dis_y = -dis_y;
-            
-            float rel_dis_x = (dis_x)/mid_x;
-            float rel_dis_y = (dis_y)/mid_y;
-            
-            int tmp_h_offset = h_offset;
-        
-        
-            if(rel_dis_x > rel_dis_y){ // use i as % index
-                    tmp_h_offset = h_offset * (1 - rel_dis_x);
+            for (int i = 0; i < 3; i++)
+            {
+                if(mask.at<uchar>(y,x) == 0) continue;
+    
+                float opacity = mask.at<uchar>(y,x)/255.0;
+
+                dst.at<cv::Vec3b>(y,x)[i] = src.at<cv::Vec3b>(y,x)[i]*(1 -opacity) + top.at<cv::Vec3b>(y,x)[i]*opacity;
             }
-            else{ // use j as % index
-                    tmp_h_offset = h_offset * (1 - rel_dis_y);
-            }
+        }
+    }
+}
+
+void blendWithHSVOffset(Mat& src, Mat& dst, int h_offset, int s_offset, int v_offset, Mat& mask)
+{
+    for (int y = 0; y < src.rows; y++)
+    {
+        for (int x = 0; x < src.cols; x++)
+        {
+            if(mask.at<uchar>(y,x) == 0) continue;
             
-            int tmp_h = src.at<cv::Vec3b>(y,x)[0]+tmp_h_offset;
+            int tmp_h = src.at<cv::Vec3b>(y,x)[0] + h_offset;
             if(tmp_h > 180) tmp_h -= 180;
             else if(tmp_h < 0) tmp_h += 180;
             dst.at<cv::Vec3b>(y,x)[0] = tmp_h;
             
-            int tmp_s = src.at<cv::Vec3b>(y,x)[1]+s_offset;
+            int tmp_s = src.at<cv::Vec3b>(y,x)[1] + s_offset;
             if(tmp_s > 255) tmp_s = 255;
             else if(tmp_s < 0) tmp_s = 0;
             dst.at<cv::Vec3b>(y,x)[1] = tmp_s;
             
             
-            int tmp_v = src.at<cv::Vec3b>(y,x)[2]+v_offset;
+            int tmp_v = src.at<cv::Vec3b>(y,x)[2] + v_offset;
             if(tmp_v > 255) tmp_v = 255;
             else if(tmp_v < 0) tmp_v = 0;
             dst.at<cv::Vec3b>(y,x)[2] = tmp_v;
         }
     }
+}
+
+void softLightBlendWithRGBColor(Mat& src, Mat& dst, int r, int g, int b, Mat& mask)
+{
+    float blendGBR[3];
+
+    blendGBR[0] = b/255.0;
+    blendGBR[1] = g/255.0;
+    blendGBR[2] = r/255.0;
     
+    for (int y = 0; y < src.rows; y++)
+    {
+        for (int x = 0; x < src.cols; x++)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if(mask.at<uchar>(y,x) == 0) continue;
+
+                float baseValue = src.at<cv::Vec3b>(y,x)[i]/255.0;
+                float result = (2*baseValue*blendGBR[i] + baseValue*baseValue*(1 - 2*blendGBR[i]))*255;
+                dst.at<cv::Vec3b>(y,x)[i]  = result;
+            }
+        }
+    }
 }
 
 void maskByContour(Mat& dst, cv::Rect& roiRect, vector<cv::Point> contour)
@@ -261,10 +276,14 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
 
     cv::Rect mouthRect = boundingRect(mouthContour);
     
-    //mouthRect.x = mouthRect.x - mouthRect.width*0.1;
-    //mouthRect.width = mouthRect.width*1.2;
-    //mouthRect.y = mouthRect.y - mouthRect.height*0.25;
-    //mouthRect.height = mouthRect.height*1.5;
+    //  Add 1 pixel around the edges.
+    //  The pixels on the edges of the mask created by maskByContour will be black.
+    //  GaussianBlur will have a better smooth effect on the edges.
+    mouthRect.x = mouthRect.x - 1;
+    mouthRect.width = mouthRect.width + 2;
+    mouthRect.y = mouthRect.y - 1;
+    mouthRect.height = mouthRect.height + 2;
+    
     Mat roi = Mat(dst, mouthRect); //Region of intrest
 
     Mat mask;
@@ -273,27 +292,35 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
     //maskByBinaryImage(roi, mask);
 
 
-    //Use the following two lines to show mask
-    //cv::cvtColor(mask, roi, CV_GRAY2BGR);
-    //return;
-    
+    //  Use (Width/8)*(Height/8) as kernel size.
+    //  The width and height of kernel should be odd and at least 3.
+    int kernelWidth = (mouthRect.width >> 3) | 3;
+    int kernelHeight = (mouthRect.height >> 3) | 3;
+
+    cv::GaussianBlur(mask, mask, cv::Size(kernelWidth, kernelHeight), 0, 0, cv::BORDER_REPLICATE);
+
+    //  Use the following two lines to show mask
+    /*
+    cv::cvtColor(mask, roi, CV_GRAY2BGR);
+    return;
+    */
+
+    cv::Mat blendImg = Mat(roi.rows, roi.cols, roi.type());
+
+    //  HSV blend
+    /*
     cv::Mat hsvImg;
     cv::cvtColor(roi, hsvImg, CV_BGR2HSV);
-
-    vector<cv::Mat> matsForEachChannel;
-    cv::split(hsvImg, matsForEachChannel);
-    //matsForEachChannel[0].setTo(cv::Scalar(30), mask);
-    
-    
-    int h_offset = 155 - hsvImg.at<cv::Vec3b>((hsvImg.rows)/4, (hsvImg.cols)/2)[0];
-    int s_offset = 210 - hsvImg.at<cv::Vec3b>((hsvImg.rows)/4, (hsvImg.cols)/2)[1];
-    
+    int h_offset = 120 - hsvImg.at<cv::Vec3b>((hsvImg.rows)/4, (hsvImg.cols)/2)[0];
     if(ABS(h_offset)> 70) h_offset = -(180-h_offset); // round up to avoid green color
-    toRelativeHSVColor(hsvImg, hsvImg, h_offset, 0, 0, mask);
-    
-    //cv::merge(matsForEachChannel, hsvImg);
+    blendWithHSVOffset(hsvImg, hsvImg, h_offset, 0, 0, mask);
+    cv::cvtColor(hsvImg, blendImg, CV_HSV2BGR);
+    */
 
-    cv::cvtColor(hsvImg, roi, CV_HSV2BGR);
+    //  Soft light blend
+    softLightBlendWithRGBColor(roi, blendImg, 0, 0, 255, mask);
+
+    mixWithOpacityMask(roi, roi, blendImg, mask);
 }
 
 - (UIImage *)rotateImage:(UIImage *)image toSize:(CGSize)targetSize
