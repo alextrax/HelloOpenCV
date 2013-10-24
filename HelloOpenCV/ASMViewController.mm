@@ -326,7 +326,7 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
 - (UIImage *)rotateImage:(UIImage *)image toSize:(CGSize)targetSize
 {
     UIImage *sourceImage = image;
-    CGFloat width, height, targetWidth, targetHeight;
+    size_t width, height, targetWidth, targetHeight;
 
     CGImageRef imageRef = [sourceImage CGImage];
 
@@ -351,8 +351,8 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
         targetHeight = MAX(targetSize.width, targetSize.height);
     }
 
-    CGFloat ratio = width/height;
-    CGFloat targetRatio = targetWidth/targetHeight;
+    CGFloat ratio = (CGFloat)width/height;
+    CGFloat targetRatio = (CGFloat)targetWidth/targetHeight;
 
     if (ratio > targetRatio)
     {
