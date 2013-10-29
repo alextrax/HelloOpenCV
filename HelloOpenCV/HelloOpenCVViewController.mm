@@ -31,9 +31,10 @@
     UIStoryboard *mainStoryboard = [UIStoryboard storyboardWithName:@"MainStoryboard" bundle: nil];
     ASMViewController *asmViewController = [mainStoryboard instantiateViewControllerWithIdentifier:@"asm"];
 
-    //UIImage *image = [info objectForKey:UIImagePickerControllerOriginalImage];
+
     asmViewController.image = [info objectForKey:UIImagePickerControllerOriginalImage];
-    //[picker pushViewController:asmViewController animated:YES];
+    asmViewController.useSTASM = YES;
+
     [picker dismissViewControllerAnimated:YES completion:nil];
     [self.navigationController pushViewController:asmViewController animated:YES];
 }

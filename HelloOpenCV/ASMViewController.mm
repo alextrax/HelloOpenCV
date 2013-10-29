@@ -8,10 +8,12 @@
 
 #import "ASMViewController.h"
 #import "asmmodel.h"
+#include "stasm_lib.h"
 #import "eye.h"
 
 @interface ASMViewController ()
 {
+    vector< Point_<int> > landmarkPoints; // for debugging
     vector< Point_<int> > rightEyePoints;
     vector< Point_<int> > leftEyePoints;
     vector< Point_<int> > lipPoints;
@@ -26,6 +28,7 @@
 @synthesize rightEyePointButtons = _rightEyePointButtons;
 @synthesize leftEyePointButtons = _leftEyePointButtons;
 @synthesize lipPointButtons = _lipPointButtons;
+@synthesize useSTASM = _useSTASM;
 
 void showNumberOnImg(Mat& src, Mat& dst, const vector< cv::Point >& vP)
 {
@@ -586,20 +589,85 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
         
         for(uint j = 0; j < V.size(); j++)
         {
+            //mouth: 48~59(outter), 60~66(inner)
             if (j >= 48 && j <= 59)
             {
                 lipPoints.push_back(V[j]);
             }
 
+            //right eye: 27~31(outter), 68~71(inner)
             if (j >= 27 && j <= 31)
             {
                 rightEyePoints.push_back(V[j]);
             }
 
+            //left eye: 32~36(outter), 72~75(inner)
             if (j >= 32 && j <= 36)
             {
                 leftEyePoints.push_back(V[j]);
             }
+            
+            landmarkPoints.push_back(V[j]);
+        }
+    }
+}
+
+- (void)fitSTASM
+{
+    // Load image.
+    Mat img = [self cvMatFromUIImage:self.image];
+    if (img.empty())
+    {
+        NSLog(@"load image fail");
+        return;
+    }
+
+    cv::Mat grayImg;
+    cv::cvtColor(img, grayImg, CV_BGR2GRAY);
+
+    
+    int foundface;
+    float landmarks[2 * stasm_NLANDMARKS]; // x,y coords (note the 2)
+    
+    const char *dataPath = [[[NSBundle mainBundle] resourcePath] UTF8String];
+    
+    if (!stasm_search_single(&foundface, landmarks,(const char*)grayImg.data, grayImg.cols, grayImg.rows, "", dataPath))
+    {
+        NSLog(@"Error in stasm_search_single: %s\n", stasm_lasterr());
+        return;
+    }
+
+    if (!foundface)
+    {
+        NSLog(@"No face found");
+        return;
+    }
+    else
+    {
+        // draw the landmarks on the image as white dots (image is monochrome)
+        stasm_force_points_into_image(landmarks, grayImg.cols, grayImg.rows);
+        for (int i = 0; i < stasm_NLANDMARKS; i++)
+        {
+            cv::Point point = cv::Point(landmarks[i*2], landmarks[i*2 + 1]);
+            //mouth: 59~65(outter-top), 66~71(inner), 72~76(bottom)
+            if ((i >= 59 && i <= 65) || (i >= 72 && i <= 76))
+            {
+                lipPoints.push_back(point);
+            }
+            
+            //right eye: 30-37(outter), 38(inner)
+            if (i >= 30 && i <= 37)
+            {
+                rightEyePoints.push_back(point);
+            }
+            
+            //left eye: 40~47(outter), 39(inner)
+            if (i >= 40 && i <= 47)
+            {
+                leftEyePoints.push_back(point);
+            }
+            
+            landmarkPoints.push_back(point);
         }
     }
 }
@@ -685,12 +753,46 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
     return buttons;
 }
 
+- (NSMutableArray*)createLandmarkLabels
+{
+    CGRect frameInImageView = [self frameForImage:self.image inImageViewAspectFit:self.imageView];
+    CGFloat scale = frameInImageView.size.width / self.image.size.width;
+
+    
+    NSMutableArray *labels = [[NSMutableArray alloc] init];
+    for(uint i = 0; i < landmarkPoints.size(); i++)
+    {
+        CGFloat x = landmarkPoints[i].x * scale + frameInImageView.origin.x;
+        CGFloat y = landmarkPoints[i].y * scale + frameInImageView.origin.y;
+
+        UILabel *pointLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 10, 10)];
+        pointLabel.textColor = [UIColor blueColor];
+        pointLabel.font = [UIFont fontWithName:@"Helvetica" size:5];
+        pointLabel.numberOfLines = 0;
+        pointLabel.text = [NSString stringWithFormat:@"%d", i];
+        [pointLabel sizeToFit];
+        pointLabel.center = CGPointMake(x, y);
+        [labels addObject:pointLabel];
+    }
+
+    return labels;
+}
+
 - (void)viewDidAppear:(BOOL)animated
 {
     dispatch_queue_t queue = dispatch_queue_create("processing image", NULL);
     dispatch_async(queue, ^{
         //UIImage *image = [self processImage:self.image];
-        [self fitASM];
+
+        if (self.useSTASM)
+        {
+            [self fitSTASM];
+        }
+        else
+        {
+            [self fitASM];
+        }
+        
         dispatch_async(dispatch_get_main_queue(), ^{
             self.imageView.image = self.image;
             self.rightEyePointButtons = [self createButtonsForPoints:rightEyePoints];
@@ -707,6 +809,13 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
             for (UIButton *button in self.lipPointButtons) {
                 [self.contentView addSubview:button];
             }
+
+            /*
+            NSMutableArray *landmarkLabels = [self createLandmarkLabels];
+            for (UILabel *label in landmarkLabels) {
+                [self.contentView addSubview:label];
+            }
+            */
         });
     });
 }
