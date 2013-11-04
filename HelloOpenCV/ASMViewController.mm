@@ -381,11 +381,11 @@ void changeLipsColor(Mat& src, Mat& dst, const vector< cv::Point >& mouthContour
     if (sourceImage.imageOrientation == UIImageOrientationLeft)
     {
         CGContextRotateCTM (bitmap, M_PI_2);
-        CGContextTranslateCTM (bitmap, 0, -targetWidth);
+        CGContextTranslateCTM (bitmap, 0, -((CGFloat)targetWidth));
     } else if (sourceImage.imageOrientation == UIImageOrientationRight)
     {
         CGContextRotateCTM (bitmap, -M_PI_2);
-        CGContextTranslateCTM (bitmap, -targetHeight, 0);
+        CGContextTranslateCTM (bitmap, -((CGFloat)targetHeight), 0);
     } else if (sourceImage.imageOrientation == UIImageOrientationUp)
     {
         // NOTHING
